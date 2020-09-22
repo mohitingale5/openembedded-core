@@ -1,0 +1,25 @@
+When we see cases where the inode no longer matches the file path, pseudo notices
+but currently reuses the database entry for the file.
+
+Change this to delete the likely stale database entry instead. We're
+seeing bugs where inode reuse for deleted files causes permission corruption.
+(See bug #14057 for example).
+
+Signed-off-by: Richard Purdie <richard.purdie@linuxfoundation.org>
+Upstream-Status: Pending
+
+Index: git/pseudo.c
+===================================================================
+--- git.orig/pseudo.c
++++ git/pseudo.c
+@@ -705,6 +705,10 @@ pseudo_op(pseudo_msg_t *msg, const char
+ 						(unsigned long long) msg_header.ino,
+ 						path_by_ino ? path_by_ino : "no path",
+ 						msg->path);
++					if (msg->nlink == 1) {
++						pdb_unlink_file_dev(msg);
++						found_ino = 0;
++					}
+ 				}
+ 			}
+ 		} else {
